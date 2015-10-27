@@ -64,13 +64,13 @@ class Value
       end
 
       def inspect
-        attributes = to_a.map { |field, value| "#{field}=#{value.inspect}" }.join(', ')
+        attributes = values_array.map { |field, value| "#{field}=#{value.inspect}" }.join(', ')
         "#<#{self.class.name} #{attributes}>"
       end
 
       def pretty_print(q)
         q.group(1, "#<#{self.class.name}", '>') do
-          q.seplist(to_a, lambda { q.text ',' }) do |pair|
+          q.seplist(values_array, lambda { q.text ',' }) do |pair|
             field, value = pair
             q.breakable
             q.text field.to_s
@@ -85,18 +85,18 @@ class Value
 
       def with(hash = {})
         return self if hash.empty?
-        self.class.with(to_h.merge(hash))
+        self.class.with(values_hash.merge(hash))
       end
 
-      def to_h
-        Hash[to_a]
+      def values_hash
+        Hash[values_array]
       end
 
-      def recursive_to_h
-        Hash[to_a.map{|k, v| [k, Value.coerce_to_h(v)]}]
+      def recursive_values_hash
+        Hash[values_array.map{|k, v| [k, Value.coerce_to_h(v)]}]
       end
 
-      def to_a
+      def values_array
         self.class::VALUE_ATTRS.map { |field| [field, send(field)] }
       end
 
@@ -112,6 +112,8 @@ class Value
       Hash[v.map{|hk, hv| [hk, coerce_to_h(hv)]}]
     when v.respond_to?(:map)
       v.map{|x| coerce_to_h(x)}
+    when v && v.respond_to?(:values_hash)
+      v.values_hash
     when v && v.respond_to?(:to_h)
       v.to_h
     else
